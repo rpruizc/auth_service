@@ -4,24 +4,38 @@ use diesel::result::{DatabaseErrorKind, Error as DBError};
 use std::convert::From;
 use uuid::Error as UuidError;
 
-#[derive(Debug, Display)]
+#[derive(Clone, Debug, Display)]
 pub enum AuthError {
-    #[display(fmt = "DuplicateValue: {}", _0)]
-    DuplicateValue(String),
+    #[display(fmt = "AuthenticationError: {}", _0)]
+    AuthenticationError(String),
 
     #[display(fmt = "BadId")]
     BadId,
 
+    #[display(fmt = "DuplicateValue: {}", _0)]
+    DuplicateValue(String),
+
     #[display(fmt = "GenericError: {}", _0)]
     GenericError(String),
+
+    // For those cases where resources are not found
+    #[display(fmt = "NotFound: {}", _0)]
+    NotFound(String),
+
+    #[display(fmt = "ProcessFailed: {}", _0)]
+    ProcessError(String),
+
 }
 
 impl ResponseError for AuthError {
     fn error_response(&self) -> HttpResponse {
         match self {
+            AuthError::AuthenticationError(ref message) => HttpResponse::Unauthorized().json(message),
             AuthError::BadId => HttpResponse::BadRequest().json("Invalid ID"),
             AuthError::DuplicateValue(ref message) => HttpResponse::BadRequest().json(message),
-            AuthError::GenericError(ref message) => HttpResponse::BadRequest().json(message), 
+            AuthError::GenericError(ref message) => HttpResponse::BadRequest().json(message),
+            AuthError::NotFound(ref message) => HttpResponse::NotFound().json(message),
+            AuthError::ProcessError(ref message) => HttpResponse::InternalServerError().json(message),
         }
     }
 }
@@ -44,7 +58,7 @@ impl From<DBError> for AuthError {
                     _ => AuthError::GenericError(message)
                 }
             }
-            _ => AuthError::GenericError(String::from("Some database error occured")),
+            _ => AuthError::GenericError(String::from("Some database error occurred")),
         }
     }
 }

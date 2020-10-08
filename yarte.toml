@@ -1,0 +1,6 @@
+[main]
+dir = "templates"
+
+[partials]
+layouts = "./layouts"
+include = "./includes"

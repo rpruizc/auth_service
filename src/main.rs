@@ -17,8 +17,11 @@ use diesel::{
 mod email_service;
 mod errors;
 mod models;
+mod password_handler;
 mod register_handler;
 mod schema;
+mod templates;
+mod utils;
 mod vars;
 
 #[actix_web::main]
@@ -45,12 +48,25 @@ async fn main() -> std::io::Result<()> {
                 .name("auth")
                 .secure(false))
             .wrap(Cors::new()
-                .allowed_origin("*")
-                .allowed_methods(vec!["GET", "POST", "DELETE"])
+                .allowed_methods(vec![ "DELETE", "GET", "OPTIONS", "POST",])
                 .max_age(3600)
                 .finish())
             .service(Files::new("/assets", "./templates/assets"))
-            })
+            // Routes
+            .service(
+                web::scope("/")
+                    .service(
+                        web::resource("/register")
+                            .route(web::get().to(register_handler::show_confirmation_form))
+                            .route(web::post().to(register_handler::send_confirmation)),
+                    )
+                .route("/register2", web::post().to(register_handler::send_confirmation_for_browser))
+                .service(
+                    web::resource("/register/{path_id}")
+                        .route(web::post().to(password_handler::create_account)),
+                ),
+            )
+        })
         .bind(format!("{}:{}", vars::domain(), vars::port()))?
         .run()
         .await
