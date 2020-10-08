@@ -52,6 +52,7 @@ async fn main() -> std::io::Result<()> {
                 .max_age(3600)
                 .finish())
             .service(Files::new("/assets", "./templates/assets"))
+
             // Routes
             .service(
                 web::scope("/")
@@ -60,11 +61,13 @@ async fn main() -> std::io::Result<()> {
                             .route(web::get().to(register_handler::show_confirmation_form))
                             .route(web::post().to(register_handler::send_confirmation)),
                     )
-                .route("/register2", web::post().to(register_handler::send_confirmation_for_browser))
-                .service(
-                    web::resource("/register/{path_id}")
-                        .route(web::post().to(password_handler::create_account)),
-                ),
+                    .service(
+                        web::resource("/register/{path_id}")
+                            .route(web::get().to(password_handler::show_password_form))
+                            .route(web::post().to(password_handler::create_account)),
+                    )
+                    .route("/register2/{path_id}", web::post().to(password_handler::create_account_for_browser))
+                    .route("/register2", web::post().to(register_handler::send_confirmation_for_browser)),
             )
         })
         .bind(format!("{}:{}", vars::domain(), vars::port()))?
